@@ -15,11 +15,16 @@ import { Badge } from "@/components/ui/badge";
 import { Bell, Send, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// ✅ Import Firestore from your firebase.ts
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+
 const alertHistory = [
   {
     id: "1",
     title: "Critical Flood Warning - Fort & Karamana",
-    message: "Severe flooding detected near Fort area and Karamana River. Water level exceeding danger mark. Evacuate low-lying areas immediately.",
+    message:
+      "Severe flooding detected near Fort area and Karamana River. Water level exceeding danger mark. Evacuate low-lying areas immediately.",
     timestamp: "45 min ago",
     status: "sent",
     severity: "critical",
@@ -27,7 +32,8 @@ const alertHistory = [
   {
     id: "2",
     title: "High Water Level Alert - Pettah Market Area",
-    message: "Water levels rising rapidly in Pettah market district. Merchants advised to move goods to higher ground.",
+    message:
+      "Water levels rising rapidly in Pettah market district. Merchants advised to move goods to higher ground.",
     timestamp: "2 hours ago",
     status: "sent",
     severity: "high",
@@ -35,7 +41,8 @@ const alertHistory = [
   {
     id: "3",
     title: "Flood Advisory - Vattiyoorkavu & Medical College",
-    message: "Heavy rainfall continuing. Residents in Vattiyoorkavu and Medical College areas should remain vigilant and avoid travel if possible.",
+    message:
+      "Heavy rainfall continuing. Residents in Vattiyoorkavu and Medical College areas should remain vigilant and avoid travel if possible.",
     timestamp: "4 hours ago",
     status: "sent",
     severity: "high",
@@ -43,7 +50,8 @@ const alertHistory = [
   {
     id: "4",
     title: "Weather Update - Trivandrum District",
-    message: "IMD forecasts heavy to very heavy rainfall in Trivandrum for next 24 hours. All citizens advised to stay alert and follow safety guidelines.",
+    message:
+      "IMD forecasts heavy to very heavy rainfall in Trivandrum for next 24 hours. All citizens advised to stay alert and follow safety guidelines.",
     timestamp: "6 hours ago",
     status: "sent",
     severity: "moderate",
@@ -57,7 +65,8 @@ export default function Alerts() {
   const [severity, setSeverity] = useState("moderate");
   const [targetArea, setTargetArea] = useState("all");
 
-  const handleSendAlert = () => {
+  // ✅ Send alert to Firestore
+  const handleSendAlert = async () => {
     if (!title || !message) {
       toast({
         title: "Missing Information",
@@ -67,16 +76,34 @@ export default function Alerts() {
       return;
     }
 
-    toast({
-      title: "Alert Sent Successfully",
-      description: "Your alert has been sent to all users in the selected area",
-    });
+    try {
+      await addDoc(collection(db, "alerts"), {
+        title,
+        message,
+        severity,
+        targetArea,
+        timestamp: serverTimestamp(),
+        status: "sent",
+      });
 
-    // Reset form
-    setTitle("");
-    setMessage("");
-    setSeverity("moderate");
-    setTargetArea("all");
+      toast({
+        title: "✅ Alert Sent Successfully",
+        description: "Your alert has been sent to all users in the selected area",
+      });
+
+      // Reset form
+      setTitle("");
+      setMessage("");
+      setSeverity("moderate");
+      setTargetArea("all");
+    } catch (error) {
+      console.error("Error sending alert:", error);
+      toast({
+        title: "Error Sending Alert",
+        description: "Something went wrong while sending the alert",
+        variant: "destructive",
+      });
+    }
   };
 
   const getSeverityColor = (severity: string) => {
@@ -97,7 +124,9 @@ export default function Alerts() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">Alerts & Notifications</h1>
-        <p className="text-muted-foreground mt-1">Create and manage flood alerts for citizens</p>
+        <p className="text-muted-foreground mt-1">
+          Create and manage flood alerts for citizens
+        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -170,8 +199,8 @@ export default function Alerts() {
               </div>
             </div>
 
-            <Button 
-              className="w-full bg-primary hover:bg-primary/90" 
+            <Button
+              className="w-full bg-primary hover:bg-primary/90"
               onClick={handleSendAlert}
             >
               <Send className="mr-2 h-4 w-4" />
@@ -197,9 +226,15 @@ export default function Alerts() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-foreground">{alert.title}</h4>
-                      <p className="mt-1 text-sm text-muted-foreground">{alert.message}</p>
-                      <p className="mt-2 text-xs text-muted-foreground">{alert.timestamp}</p>
+                      <h4 className="font-semibold text-foreground">
+                        {alert.title}
+                      </h4>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {alert.message}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {alert.timestamp}
+                      </p>
                     </div>
                     <Badge className={getSeverityColor(alert.severity)}>
                       {alert.severity}
